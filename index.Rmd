@@ -1,0 +1,53 @@
+---
+title: "Practical Machine Learning Course Project"
+author: "Alisha Qazi"
+date: "12/17/2017"
+output: html_document
+---
+
+Practical Machine Learning Course Project
+=========================================
+
+## Predicting the Manner in which Exercise was Done
+
+## Analysis
+
+In the code below, we create a model that involves splitting the data into test and cross validation data. This is done because it will help us to ensure that the variables of interest are put into the final model. The expected out of sample error is 0.0056. Early on, I removed a few strings (NA, #DIV/0!, etc.) because these are error codes that will hinder the results. 
+```{r, echo=TRUE}
+library(caret)
+library(randomForest)
+mytrain <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+mytest <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+download.file(url = mytrain, destfile = "data_train.csv")
+download.file(url = mytest, destfile = "data_test.csv")
+train1 <- read.csv(file = "data_train.csv", na.strings = c("NA","#DIV/0!", ""))
+test1 <- read.csv(file = "data_test.csv", na.strings = c("NA","#DIV/0!", ""))
+for(i in c(8:ncol(train1)-1)) {
+    train1[,i] = as.numeric(as.character(train1[,i]))
+    test1[,i] = as.numeric(as.character(test1[,i]))
+}
+index <- colnames(train1)
+index <- colnames(train1[colSums(is.na(train1)) == 0])
+index <- index[-c(1:7)]
+set.seed(2017)
+trainIndex <- createDataPartition(y=train1$classe, p=0.6, list=FALSE)
+trainData <- train1[trainIndex, index]
+crossvalidation <- train1[-trainIndex, index]
+dim(trainData)
+dim(crossvalidation)
+rfmodel <- train(classe ~ ., data = trainData, method = "rf", tr_control = trainControl(method="cv", number = 4, allowParallel = TRUE, verboseIter = TRUE))
+rfpredict <- predict(rfmodel, crossvalidation)
+matrixmodel <- confusionMatrix(rfpredict,crossvalidation$classe)
+matrixmodel
+```
+
+The model's accuracy is 0.9944, and since the sample size is 20, this accuracy rate is sufficient for us to assume the answers will be correct.
+
+## Model - applying to test set
+```{r, echo=TRUE}
+lastcolumn <- length(colnames(test1[]))
+colnames(test1)[lastcolumn] <- "classe"
+rfquiz <- predict(rfmodel, test1[,index])
+rfquiz
+```
+
